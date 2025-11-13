@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WBSEDCL Smart PDF Printer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
+
+<style>
+:root {
+  --primary: #0b78d1;
+  --accent: #6c5ce7;
+  --bg: #eef4ff;
+  --card: #ffffffcc;
+  --success: #16a34a;
+  --error: #dc2626;
+}
+
+/* ========================= WEB VIEW ========================= */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, var(--accent), var(--primary));
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.container {
+  width: 360px;
+  background: var(--card);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  text-align: center;
+}
+h2 { color: var(--primary); margin-bottom: 15px; font-weight: 600; }
+
+.upload-box {
+  border: 2px dashed var(--primary);
+  border-radius: 10px;
+  padding: 20px;
+  background: #f9fcff;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.upload-box:hover { background: #e8f3ff; }
+input[type=file] { display: none; }
+
+#msg {
+  display: none;
+  padding: 8px;
+  border-radius: 5px;
+  margin-top: 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.data-box {
+  display: none;
+  background: white;
+  border-radius: 10px;
+  margin-top: 15px;
+  padding: 10px;
+  text-align: left;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.05);
+}
+.data-row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; border-bottom: 1px dashed #ccc; }
+.data-row span:last-child { font-weight: bold; }
+
+button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  width: 100%;
+  font-weight: 600;
+  font-size: 15px;
+  transition: 0.3s;
+}
+button:hover { background: var(--accent); }
+
+/* ========================= PRINT VIEW ========================= */
+#receipt {
+    font-weight: bold;
+  display: none;
+  font-family:'Courier New', Courier, monospace;
+  text-align: left;
+  width: 58mm;
+  padding: 0;
+  background: white;
+  color: black;
+  font-size: 36px;
+}
+#receipt h2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight:800 ;
+  text-align: center;
+  font-size: 16pt;
+  margin-bottom: 1mm;
+  color: #000;
+}
+hr {
+  border: none;
+  border-top: 1px dashed #000;
+  margin: 0.01mm;
+}
+p { font-size: 11pt; margin: 0.01mm; line-height: 1.2; }
+
+@media print {
+  @page {
+    size: 58mm auto;
+    margin: 0;
+  }
+  body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .container, #msg {
+    display: none !important;
+  }
+  #receipt {
+    display: block !important;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  #receipt * {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>⚡ WBSEDCL Receipt Printer</h2>
+
+  <div class="upload-box" id="uploadBox">
+    📄 Click or Drop WBSEDCL PDF Here
+    <input type="file" id="pdfFile" accept="application/pdf">
+  </div>
+
+  <div id="msg"></div>
+
+  <div class="data-box" id="dataBox">
+    <div class="data-row"><span>Transaction ID:</span><span id="txnIdInput"></span></div>
+    <div class="data-row"><span>Date:</span><span id="dateInput"></span></div>
+    <div class="data-row"><span>Consumer ID:</span><span id="cidInput"></span></div>
+    <div class="data-row"><span>Name:</span><span id="nameInput"></span></div>
+    <div class="data-row"><span>Invoice No:</span><span id="invoiceInput"></span></div>
+    <div class="data-row"><span>Bill Paid For:</span><span id="paidForInput"></span></div>
+    <div class="data-row"><span>Received (Rs):</span><span id="amountInput"></span></div>
+    <button id="printBtn" onclick="showReceiptAndPrint()">🖨 Print Receipt</button>
+  </div>
+</div>
+
+<!-- THERMAL PRINT RECEIPT -->
+<div id="receipt">
+  <h2>DIGI WORLD</h2>
+  <p style="text-align:center;font-size:9pt;">(Electricity Bill Receipt)</p>
+  <hr>
+  <p>Transaction ID: <span id="txnId"></span></p>
+  <p>Date: <span id="date"></span></p>
+  <p>Consumer ID: <span id="cid"></span></p>
+  <p>Name: <span id="name"></span></p>
+  <p>Invoice No: <span id="invoice"></span></p>
+  <p>Bill Paid For: <span id="paidFor"></span></p>
+  <p>Received: Rs. <span id="amount"></span></p>
+  <hr>
+  <p style="text-align:center;">Thank You</p>
+  <p style="text-align:center;font-size:8pt;">Generated on: <span id="printTime"></span></p>
+</div>
+
+<script>
+document.getElementById('uploadBox').addEventListener('click', () => {
+  document.getElementById('pdfFile').click();
+});
+document.getElementById('pdfFile').addEventListener('change', extractPDFData);
+
+async function extractPDFData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const msg = document.getElementById('msg');
+  msg.style.display = 'block';
+  msg.textContent = "⌛ Reading PDF...";
+  msg.style.background = "#fef9c3";
+  msg.style.color = "#92400e";
+
+  try {
+    const buffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    const page = await pdf.getPage(1);
+    const content = await page.getTextContent();
+    const text = content.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+
+    // ✅ Smart Regex for all WBSEDCL formats
+    const txn = text.match(/Transaction\s*ID[:\s]*([A-Z0-9\-]+)/i);
+    const date = text.match(/Date[:\s]*([\d.\/-]+)/i);
+    const cid = text.match(/Consumer\s*Id[:\s]*([\d]+)/i);
+    const name = text.match(/Name[:\s]*([A-Za-z .]+?)(?:Invoice|Bill|For|Rs|$)/i);
+    const invoice = text.match(/Invoice(?:\s*(?:Number|No\.?|#))?(?:\s*\/Appl\.?\s*No\.?)?(?:\s*\/Inst\.?\s*No\.?)?[:\s]*([A-Za-z0-9\-]+)/i);
+    const month = text.match(/Bill\s*Paid\s*For[:\s]*([A-Za-z0-9]+)/i);
+    const amt = text.match(/Received[:\s]*Rs\.?\s*([0-9,]+)/i);
+
+    document.getElementById('txnIdInput').textContent = txn ? txn[1] : '-';
+    document.getElementById('dateInput').textContent = date ? date[1] : '-';
+    document.getElementById('cidInput').textContent = cid ? cid[1] : '-';
+    document.getElementById('nameInput').textContent = name ? name[1].trim() : '-';
+    document.getElementById('invoiceInput').textContent = invoice ? invoice[1] : '-';
+    document.getElementById('paidForInput').textContent = month ? month[1] : '-';
+    document.getElementById('amountInput').textContent = amt ? amt[1].replace(/,/g, '') : '-';
+
+    document.getElementById('dataBox').style.display = 'block';
+    msg.textContent = "✅ Data extracted successfully! Ready to print.";
+    msg.style.background = "#dcfce7";
+    msg.style.color = "#166534";
+  } catch (e) {
+    console.error(e);
+    msg.textContent = "❌ Error extracting data.";
+    msg.style.background = "#fee2e2";
+    msg.style.color = "#991b1b";
+  }
+}
+
+function showReceiptAndPrint() {
+  document.getElementById('txnId').textContent = document.getElementById('txnIdInput').textContent;
+  document.getElementById('date').textContent = document.getElementById('dateInput').textContent;
+  document.getElementById('cid').textContent = document.getElementById('cidInput').textContent;
+  document.getElementById('name').textContent = document.getElementById('nameInput').textContent;
+  document.getElementById('invoice').textContent = document.getElementById('invoiceInput').textContent;
+  document.getElementById('paidFor').textContent = document.getElementById('paidForInput').textContent;
+  document.getElementById('amount').textContent = document.getElementById('amountInput').textContent;
+  document.getElementById('printTime').textContent = new Date().toLocaleString();
+  document.getElementById('receipt').style.display = 'block';
+  setTimeout(() => window.print(), 400);
+}
+</script>
+
+</body>
+</html>
